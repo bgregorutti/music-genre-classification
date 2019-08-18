@@ -34,7 +34,7 @@ def dense_nn(input_shape, nrClasses):
 
     return model
 
-def conv_nn(input_shape):
+def conv_nn(input_shape, nrClasses):
     """
         Convolutional neural network with two convolutional layers and two dense layers
     """

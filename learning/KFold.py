@@ -137,7 +137,7 @@ class KfoldClassifier(BaseEstimator, ClassifierMixin):
         predictions = np.zeros((n, n_folds))
 
         for fold in models:
-            predictions[:,fold] = models[fold].predict(X)
+            predictions[:,fold] = models[fold].predict_proba(X)
 
         return np.mean(predictions, axis=1)
 
