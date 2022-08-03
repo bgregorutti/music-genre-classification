@@ -1,47 +1,32 @@
+"""
+Train MLP model on well choesen audio features
+"""
+
 from pathlib import Path
-import pickle
 
 import numpy as np
 import pandas as pd
-
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
-
-from tensorflow.keras.layers import Input, Dense, Dropout, Conv2D, MaxPooling2D,GlobalAveragePooling2D
+from tensorflow.keras.layers import Input, Dense, Dropout
 from tensorflow.keras.models import Model
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 
-from extract_spectrogram import spectrogram
+from genre.evaluate import evaluate
+from genre.extract_spectrogram import feature_extraction
 
-
-def evaluate(model, X_test, y_test, labels, history):
-    
-    print(pd.Series(model.evaluate(X_test, y_test), index=model.metrics_names))
-        
-    plt.figure(figsize=(12,8))
-    plt.plot(history.history['accuracy'])
-    plt.plot(history.history['val_accuracy'])
-    plt.xlabel('epoch')
-    plt.ylabel('Accuracy')
-    
-    probabilities = model.predict(X_test)
-    predictedClasses = np.argmax(probabilities, axis=1)
-    confMat = pd.DataFrame(confusion_matrix(y_test, predictedClasses), index=labels, columns=labels)
-    confMat /= np.sum(confMat, axis=1)
-
-    plt.figure(figsize=(12,8))
-    sns.heatmap(confMat, cmap=plt.cm.Blues, annot=True)
-    plt.xlabel("Predicted labels")
-    plt.ylabel("True labels")
-    plt.title('Confusion matrix')
-
-    plt.show()
 
 def get_model(nr_classes):
+    """
+    Get the Keras model
+
+    Args:
+        nr_classes: number of classes
+    
+    Returns:
+        An object of class tf.keras.Model
+    """
+
     units = 512
     nr_layers = 4
 
@@ -60,12 +45,16 @@ def get_model(nr_classes):
     return model
 
 def get_features():
+    """
+    Compute the audio features
+    """
+
     path = Path("data.csv")
 
     if path.exists():
         data = pd.read_csv('data.csv')
     else:
-        data = featureExtraction()
+        data = feature_extraction()
         data.to_csv('data.csv')
         
     # Dropping unneccesary columns
@@ -90,6 +79,15 @@ def get_features():
     return X_train, y_train, X_test, y_test, X_val, y_val, labels
 
 def run(model, X_train, y_train, X_test, y_test, X_val, y_val, labels):
+    """
+    Main training function, evaluate and plot the results
+
+    Args:
+        model: a Keras model
+        X_train, y_train, X_test, y_test, X_val, y_val: Train, Test and Validation data
+        labels: the actual labels
+    """
+
     model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
     reduce_lr = ReduceLROnPlateau(monitor="val_loss")
     early_stopping = EarlyStopping(monitor="loss", patience=3)

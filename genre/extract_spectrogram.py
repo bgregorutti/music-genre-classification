@@ -1,14 +1,19 @@
+"""
+Features extraction module
+"""
 
 import os
 import librosa
 from random import sample
 import numpy as np
-# from tqdm import tqdm
 from joblib import Parallel, delayed
 import pandas as pd
 
-def featureExtraction():
-    
+def feature_extraction():
+    """
+    Extract 'static' features from the audio files
+    """
+
     # Headers
     header = 'filename chroma_stft spectral_centroid spectral_bandwidth rolloff zero_crossing_rate'
     for i in range(1, 21):
@@ -48,7 +53,11 @@ def featureExtraction():
 def compute_mfcc(file_name):
     """
     Extract the Mel-frequency Cepstral Coefficients
-    """    
+
+    Args:
+        file_name: WAV file name
+    """
+
     # Load
     y, sr = librosa.load(file_name, mono=True, duration=30)
 
@@ -56,19 +65,34 @@ def compute_mfcc(file_name):
     return librosa.feature.mfcc(y=y, sr=sr)
 
 def mel_spectrogram(file_name):
+    """
+    Extract the Mel-spectrogram
+
+    Args:
+        file_name: WAV file name
+    """
+
     y, sr = librosa.load(file_name, mono=True, duration=30)
     spectro = librosa.feature.melspectrogram(y, sr=sr)
     return librosa.amplitude_to_db(spectro, ref=np.max)
 
 def spectrogram(file_name):
-    y, sr = librosa.load(file_name, mono=True, duration=30)
+    """
+    Extract the spectrogram from the Short Time Fourier Transform 
+
+    Args:
+        file_name: WAV file name
+    """
+
+    y, _ = librosa.load(file_name, mono=True, duration=30)
     spectro = np.abs(librosa.stft(y))
     return librosa.amplitude_to_db(spectro, ref=np.max)
 
 def load_spec_data(fileName, outFile):
     """
-    Extract the Mel-frequency Cepstral Coefficients
-    """    
+    [DEPRECATED] Extract the Mel-frequency Cepstral Coefficients
+    """
+
     # Load
     y, sr = librosa.load(fileName, mono=True, duration=30)
 
@@ -82,6 +106,9 @@ def load_spec_data(fileName, outFile):
 
 
 def specImgs(nrFiles):
+    """
+    [DEPRECATED]
+    """
     
     folder = 'data/genres_wav/'
     
@@ -109,20 +136,17 @@ def specImgs(nrFiles):
     
     return features, targets
 
-
-
-# 
-# Parallel execution
-# 
-
 def changeExtension(fileName, ext):
+    """
+    [DEPRECATED]
+    """
 
     tmp = fileName.split('.')[0]
     return tmp + ext
 
 def loadSpecDataParallel(nrFiles):
     """
-        Load the wav, extract the spectrograms and export to CSV
+    [DEPRECATED] Load the wav, extract the spectrograms and export to CSV
     """
 
     folder = 'data/genres_wav/'
@@ -132,10 +156,14 @@ def loadSpecDataParallel(nrFiles):
     if nrFiles:
         files = sample(files, nrFiles)
 
-    Parallel(n_jobs=-1)(delayed(load_spec_data)(os.path.join(folder, filename), os.path.join(folder_csv, changeExtension(filename, '.csv'))) for filename in tqdm(files))
+    Parallel(n_jobs=-1)(delayed(load_spec_data)(os.path.join(folder, filename), os.path.join(folder_csv, changeExtension(filename, '.csv'))) for filename in files)
 
 
 def importCSV(nrFiles):
+    """
+    Load the wav, extract the spectrograms and export to CSV
+    """
+
     folder = 'data/spectrograms_csv/'
     
     files = os.listdir(folder)
@@ -151,13 +179,14 @@ def importCSV(nrFiles):
 
     return features, genres
 
-
 def wrapper(folder, fileName): 
+    """
+    Load the wav, extract the spectrograms and export to CSV
+    """
+
     return pd.read_csv(os.path.join(folder, fileName)).values
 
 if __name__ == '__main__':
-    # loadSpecDataParallel(0)
-    # loadSpecData('data/genres_wav/metal_00056.wav', 'aaaa.npy')
     features, targets = importCSV(0)
     np.save('spectrograms.npy', features)
     np.save('targets.npy', targets)
