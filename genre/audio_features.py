@@ -9,46 +9,6 @@ import numpy as np
 from joblib import Parallel, delayed
 import pandas as pd
 
-def feature_extraction():
-    """
-    Extract 'static' features from the audio files
-    """
-
-    # Headers
-    header = 'filename chroma_stft spectral_centroid spectral_bandwidth rolloff zero_crossing_rate'
-    for i in range(1, 21):
-        header += ' mfcc{}'.format(i)
-    header += ' label'
-    header = header.split()
-
-    folder = 'data/genres_wav/'
-    features = []
-    for k, filename in enumerate(os.listdir(folder)):
-
-        if not k % 100:
-            print('{} songs imported'.format(k))
-        
-        songname = os.path.join(folder, filename)
-        genre = filename.split('_')[0]
-        
-        y, sr = librosa.load(songname, mono=True, duration=30)
-        chroma_stft = librosa.feature.chroma_stft(y=y, sr=sr)
-        spec_cent = librosa.feature.spectral_centroid(y=y, sr=sr)
-        spec_bw = librosa.feature.spectral_bandwidth(y=y, sr=sr)
-        rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)
-        zcr = librosa.feature.zero_crossing_rate(y)
-        mfcc = librosa.feature.mfcc(y=y, sr=sr)
-        
-        currentSong = [filename, np.mean(chroma_stft), np.mean(spec_cent), np.mean(spec_bw), np.mean(rolloff), np.mean(zcr)]
-        for e in mfcc:
-            currentSong.append(np.mean(e))
-        
-        # Add the label
-        currentSong.append(genre)
-        
-        features.append(currentSong)
-    
-    return pd.DataFrame(features, columns=header)
 
 def compute_mfcc(file_name):
     """
@@ -161,7 +121,7 @@ def loadSpecDataParallel(nrFiles):
 
 def importCSV(nrFiles):
     """
-    Load the wav, extract the spectrograms and export to CSV
+    [DEPRECATED] Load the wav, extract the spectrograms and export to CSV
     """
 
     folder = 'data/spectrograms_csv/'
@@ -181,13 +141,7 @@ def importCSV(nrFiles):
 
 def wrapper(folder, fileName): 
     """
-    Load the wav, extract the spectrograms and export to CSV
+    [DEPRECATED] Load the wav, extract the spectrograms and export to CSV
     """
 
     return pd.read_csv(os.path.join(folder, fileName)).values
-
-if __name__ == '__main__':
-    features, targets = importCSV(0)
-    np.save('spectrograms.npy', features)
-    np.save('targets.npy', targets)
-

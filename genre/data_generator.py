@@ -2,10 +2,12 @@
 Data Generator module
 """
 
+# TODO add the segment cut to the Generator
+
 from pathlib import Path
 from tensorflow.keras.utils import Sequence, to_categorical
 import numpy as np
-from genre.extract_spectrogram import spectrogram
+from genre.audio_features import spectrogram
 
 label_mapping = {
     "blues": 0,

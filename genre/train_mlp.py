@@ -13,7 +13,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 
 from genre.evaluate import evaluate
-from genre.extract_spectrogram import feature_extraction
+from genre.audio_features import static_features
 
 
 def get_model(nr_classes):
@@ -54,7 +54,7 @@ def get_features():
     if path.exists():
         data = pd.read_csv('data.csv')
     else:
-        data = feature_extraction()
+        data = static_features()
         data.to_csv('data.csv')
         
     # Dropping unneccesary columns

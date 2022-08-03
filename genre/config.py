@@ -2,7 +2,12 @@
 GPU config
 """
 
+import tensorflow as tf
+
 def config():
+    """
+    Handle memory issues when using GPUs
+    """
     gpus = tf.config.list_physical_devices('GPU')
     if gpus:
         try:
