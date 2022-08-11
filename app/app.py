@@ -1,5 +1,5 @@
 from flask import Flask, request
-from keras.models import load_model
+# from keras.models import load_model
 
 app = Flask(__name__)
 MODEL = None
@@ -8,11 +8,11 @@ MODEL = None
 def before_first_request():
     global MODEL
     app.logger.warning("Loading Keras model...")
-    MODEL = load_model("../model")
+    # MODEL = load_model("../model")
 
 @app.route('/')
 def index():
-    return "This is an example app"
+    return "Application running"
 
 @app.route('/classify', methods=["POST"])
 def classify():

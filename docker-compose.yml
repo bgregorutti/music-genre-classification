@@ -1,0 +1,22 @@
+services:
+  default:
+    image: continuumio/miniconda3:latest
+    container_name: MINICONDA
+    command: bash
+  
+  test:
+    image: test
+    container_name: TEST
+    build: .
+    # ports:
+      # - "8000:5000"
+    # volumes:
+  
+  app:
+    image: app
+    container_name: APP
+    build: .
+    ports:
+      - "5000:5000"
+    # volumes:
+    command: python app/app.py

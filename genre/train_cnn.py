@@ -11,7 +11,6 @@ from tensorflow.keras.utils import to_categorical
 
 from genre.evaluate import evaluate
 from genre.features_extraction import multichannel_spectrogram, label_mapping
-from genre.models import convolutional
 
 def get_features(wav_data_path, np_data_path, precompute=False):
     """
