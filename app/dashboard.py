@@ -27,6 +27,9 @@ def split_data(data, sr):
 
     total_seconds = data.size / sr
     nr_segments = int(total_seconds / 3)
+    if not nr_segments:
+        nr_segments = 1
+    
     sample_per_segment = int(data.size / nr_segments)
     for n in range(nr_segments):
         segment = data[sample_per_segment*n:sample_per_segment*(n+1)]
@@ -73,17 +76,18 @@ app = dash.Dash(__name__, title="Audio analysis", update_title=None)
 app.layout = html.Div([
     dcc.Store(id="client_content", data="DATA"),
     dcc.Store(id="client_fig_data", data={}),
+    dcc.Store(id="current_position", data=0),
     dcc.Interval(id="client_interval", interval=50),
-    dcc.Interval(id="client_interval2", interval=5000),
+    dcc.Interval(id="interval_prediction", interval=5000),
+    html.H2(children="Music genre classification"),
+    html.Br(),
     html.Audio(id="audiospeler",
                src="data:audio/mpeg;base64,{}".format(encoded_sound.decode()),
                controls=True,
                autoPlay=False,
-               style={"width": "100%"}
-               ),
+               style={"width": "100%"}),
     dcc.Graph(id="client_graph"),
-    dcc.Markdown(id="pred_content", children="N/A")
-
+    html.Div(className="container", children=[dcc.Markdown(id="pred_content", children="N/A")])
 ])
 
 
@@ -111,16 +115,22 @@ def update_figure(interval):
 
 @app.callback(
     Output("pred_content", "children"),
-    Input("client_content", "data")
+    Input("current_position", "data")
 )
-def update_prediction(client_content):
-    position = int(client_content * len(df_raw))
+def update_prediction(current_position):
+    app.logger.info("Updating the prediction")
+    position = int(current_position * len(df_raw))
     window = int(3 * sr)
     dat = df_raw.iloc[position: position+window]
     features = split_data(dat.data.values, sr)
     prediction = predict_genre(features)
-    print(features.shape)
-    return f"Found {client_content}. Current position: {position}. window: {window}. From {dat.time.min()} to {dat.time.max()}\nPrediction: {prediction}"
+    return f"""
+**Current position**: {position}
+
+**From** {dat.time.min()} **to** {dat.time.max()}
+
+**Prediction**: {prediction}
+"""
 
 
 # client-side callback with javascript to update graph annotations.
@@ -159,5 +169,28 @@ app.clientside_callback(
     Input("client_interval", "n_intervals")
 )
 
+app.clientside_callback(
+    """
+    function GetCurrentPosition(figure_data, n_intervals){
+        if(figure_data === undefined){
+            return "ERROR: no data for figure";
+        }
+        
+        var myaudio = document.getElementById("audiospeler");
+        var cur_time = myaudio.currentTime;
+        var tot_time = myaudio.duration;
+        if( !tot_time ) {
+            return "ERROR: no data for sound";
+        }
+        var ratio_time = cur_time / tot_time   
+              
+        return ratio_time;
+    }
+    """,
+    Output("current_position", "data"),
+    Input("client_fig_data", "data"),
+    Input("interval_prediction", "n_intervals")
+)
+
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug=True, host="0.0.0.0", port=8050)

@@ -1,22 +1,31 @@
+version: "3.7"
 services:
-  default:
-    image: continuumio/miniconda3:latest
-    container_name: MINICONDA
+  tensorflow:
+    image: python38
+    container_name: tensorflow
     command: bash
-  
-  test:
-    image: test
-    container_name: TEST
-    build: .
-    # ports:
-      # - "8000:5000"
-    # volumes:
-  
-  app:
-    image: app
-    container_name: APP
-    build: .
+    volumes:
+      - ./:/workdir/
+  dashapp:
+    image: dashapp
+    container_name: dashapp
+    build: 
+      context: .
+      dockerfile: Dockerfile-fix
+      target: dashapp
     ports:
-      - "5000:5000"
+      - "8050:8050"
     # volumes:
-    command: python app/app.py
+    # command: python /workdir/app/dashboard.py
+  predapp:
+    image: predapp
+    container_name: predapp
+    build: 
+      context: .
+      dockerfile: Dockerfile-fix
+      target: predapp
+    ports:
+      - "8080:8080"
+    # volumes:
+    # command: python /workdir/app/app.py
+
