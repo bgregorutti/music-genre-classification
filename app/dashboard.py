@@ -12,6 +12,7 @@ import plotly.express as px
 import pandas as pd
 import base64
 import math
+import requests
 
 import librosa
 import numpy as np
@@ -42,8 +43,13 @@ def split_data(data, sr):
     return np.array(features)
 
 def predict_genre(features):
-    from random import choice
-    return choice(["rock (51%)", "jazz (95%)", "classical (75%)"])
+    # from random import choice
+    # return choice(["rock (51%)", "jazz (95%)", "classical (75%)"])
+    response = requests.post("http://predapp:8080/classify", json=features.tolist())
+    predicted_label = response.json().get("predicted_label")
+    probability = round(response.json().get("probability") * 100, 2)
+    return f"{predicted_label} ({probability}%)"
+    return "aaa"
 
 
 # data sound preparations
@@ -87,12 +93,22 @@ app.layout = html.Div([
                autoPlay=False,
                style={"width": "100%"}),
     dcc.Graph(id="client_graph"),
-    html.Div(className="container", children=[dcc.Markdown(id="pred_content", children="N/A")])
+    html.Div(className="container", children=[dcc.Markdown(id="pred_content", children="N/A")]),
+    html.Button(id='butt', children="Send request"),
+    dcc.Markdown(id="testbutt", children="N/A")
 ])
 
 
 
 # CALLBACKS ---------------------------------------------------------
+
+@app.callback(
+    Output("testbutt", "children"),
+    Input("butt", "n_clicks"))
+def test_request(n_clicks):
+    response = requests.get("http://predapp:8080/")
+    return str(response.content)
+
 @app.callback(
     Output("client_fig_data", "data"),
     Input("client_interval", "interval")
@@ -118,7 +134,7 @@ def update_figure(interval):
     Input("current_position", "data")
 )
 def update_prediction(current_position):
-    app.logger.info("Updating the prediction")
+    # app.logger.info("Updating the prediction")
     position = int(current_position * len(df_raw))
     window = int(3 * sr)
     dat = df_raw.iloc[position: position+window]
