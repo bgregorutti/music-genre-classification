@@ -20,6 +20,8 @@ from pathlib import Path
 import librosa
 import numpy as np
 
+from config import environment
+
 def split_data(data, sr):
     """
     Split into segments of 3 seconds
@@ -45,14 +47,14 @@ def split_data(data, sr):
             features.append(spectro.tolist())
     return np.array(features)
 
-def predict_genre(features):
-    response = requests.post("http://predapp:8080/classify", json=features.tolist()) #TODO env file
+def predict_genre(features, host, port):
+    response = requests.post(f"http://{host}:{port}/classify", json=features.tolist()) #TODO env file
     predicted_label = response.json().get("predicted_label")
     probability = round(response.json().get("probability") * 100, 2)
     return f"{predicted_label} ({probability}%)"
 
-def predict_genre_overall(features):
-    response = requests.post("http://predapp:8080/classify_overall", json=features.tolist()) #TODO env file
+def predict_genre_overall(features, host, port):
+    response = requests.post(f"http://{host}:{port}/classify_overall", json=features.tolist()) #TODO env file
     if response.status_code != 200:
         return "N/A"
 
@@ -89,8 +91,14 @@ def read_data(file_name):
 
 encoded_sound, np_data, sr, df_raw, df = read_data(FILE_NAME)
 
+# Get the environment variables
+PREDAPP_IP, PREDAPP_PORT = environment()
+
 # MAIN --------------------------------------------------------------
 app = dash.Dash(__name__, title="Audio analysis", update_title=None)
+
+app.logger.error("{}:{}".format(PREDAPP_IP, PREDAPP_PORT))
+
 
 app.layout = html.Div([
     dcc.Store(id="client_content", data="DATA"),
@@ -115,7 +123,7 @@ app.layout = html.Div([
     html.H2(children="Real-time prediction"),
     html.Div(className="container", children=[dcc.Markdown(id="pred_content", children="N/A")]),
     html.H2(children="Overall prediction"),
-    dcc.Markdown(id="pred_overall", children=predict_genre_overall(split_data(data=np_data, sr=sr)))
+    dcc.Markdown(id="pred_overall", children=predict_genre_overall(features=split_data(data=np_data, sr=sr), host=PREDAPP_IP, port=PREDAPP_PORT))
 ])
 
 
@@ -133,7 +141,7 @@ def update_dropdown(value):
     print("Dropdown value", value)
     encoded_sound, np_data, sr, df_raw, df = read_data(Path("../test/resources", value))
     encoded_str = "data:audio/mpeg;base64,{}".format(encoded_sound.decode())
-    return str(Path("../test/resources", value)), predict_genre_overall(split_data(data=np_data, sr=sr)), encoded_str
+    return str(Path("../test/resources", value)), predict_genre_overall(features=split_data(data=np_data, sr=sr), host=PREDAPP_IP, port=PREDAPP_PORT), encoded_str
 
 @app.callback(
     Output("client_fig_data", "data"),
@@ -168,7 +176,7 @@ def update_prediction(current_position):
     window = int(3 * sr)
     dat = df_raw.iloc[position:position+window]
     features = split_data(dat.data.values, sr)
-    prediction = predict_genre(features)
+    prediction = predict_genre(features=features, host=PREDAPP_IP, port=PREDAPP_PORT)
     from_date = f"00:{dat.time.min().minute:02d}:{dat.time.min().second:02d}"
     to_date = f"00:{dat.time.max().minute:02d}:{dat.time.max().second:02d}"
     return f"""

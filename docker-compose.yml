@@ -19,6 +19,9 @@ services:
       - predapp
     volumes:
       - ./:/workdir/
+    environment:
+      - PREDAPP_IP
+      - PREDAPP_PORT
     # command: python /workdir/app/dashboard.py
   predapp:
     image: predapp
@@ -28,7 +31,7 @@ services:
       dockerfile: Dockerfile-fix
       target: predapp
     ports:
-      - "8080:8080"
+      - "$PREDAPP_PORT:8080"
     volumes:
       - ./:/workdir/
     # command: python /workdir/app/app.py
