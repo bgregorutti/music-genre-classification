@@ -2,6 +2,8 @@
 sample code, based on https://community.plotly.com/t/audio-file-aligned-with-graph/60994
 """
 
+#TODO add the overall prediction, based on the all music, in a separated Markdown
+
 # IMPORTS -----------------------------------------------------------
 import dash
 from dash import dcc
@@ -13,6 +15,7 @@ import pandas as pd
 import base64
 import math
 import requests
+from pathlib import Path
 
 import librosa
 import numpy as np
@@ -43,38 +46,48 @@ def split_data(data, sr):
     return np.array(features)
 
 def predict_genre(features):
-    # from random import choice
-    # return choice(["rock (51%)", "jazz (95%)", "classical (75%)"])
-    response = requests.post("http://predapp:8080/classify", json=features.tolist())
+    response = requests.post("http://predapp:8080/classify", json=features.tolist()) #TODO env file
     predicted_label = response.json().get("predicted_label")
     probability = round(response.json().get("probability") * 100, 2)
     return f"{predicted_label} ({probability}%)"
-    return "aaa"
 
+def predict_genre_overall(features):
+    response = requests.post("http://predapp:8080/classify_overall", json=features.tolist()) #TODO env file
+    if response.status_code != 200:
+        return "N/A"
 
-# data sound preparations
-FILE_NAME = "../test/resources/chicken.wav"
-encoded_sound = base64.b64encode(open(FILE_NAME, "rb").read())
-np_data, sr = librosa.load(FILE_NAME)
-time_sec = np.array([t / sr for t in range(len(np_data))])
-df_raw = pd.DataFrame({
-    "time": np.array([t / sr for t in range(len(np_data))]),
-    "data": np_data
-})
-df_raw["time"] = pd.to_datetime(df_raw["time"], unit="s")
+    predicted_label = response.json().get("predicted_label")
+    probability = round(response.json().get("probability") * 100, 2)
+    return f"{predicted_label} ({probability}%)"
 
-target_sr = 1000
-sample = librosa.resample(np_data, orig_sr=sr, target_sr=target_sr)
+# Default sound file
+FILE_NAME = Path("../test/resources/javanaise.wav")
 
-df = pd.DataFrame({
-    "time": np.array([t / target_sr for t in range(len(sample))]),
-    "data": sample
-})
-df["time"] = pd.to_datetime(df["time"], unit="s")
+# List the available files
+FILE_NAMES = [str(path.name) for path in Path("../test/resources/").glob("*.wav")]
 
+def read_data(file_name):
+    # Open the default file and process it
+    encoded_sound = base64.b64encode(open(str(file_name), "rb").read())
+    np_data, sr = librosa.load(str(file_name))
+    df_raw = pd.DataFrame({
+        "time": np.array([t / sr for t in range(len(np_data))]),
+        "data": np_data
+    })
+    df_raw["time"] = pd.to_datetime(df_raw["time"], unit="s")
 
+    target_sr = 1000
+    sample = librosa.resample(np_data, orig_sr=sr, target_sr=target_sr)
 
+    df = pd.DataFrame({
+        "time": np.array([t / target_sr for t in range(len(sample))]),
+        "data": sample
+    })
+    df["time"] = pd.to_datetime(df["time"], unit="s")
 
+    return encoded_sound, np_data, sr, df_raw, df
+
+encoded_sound, np_data, sr, df_raw, df = read_data(FILE_NAME)
 
 # MAIN --------------------------------------------------------------
 app = dash.Dash(__name__, title="Audio analysis", update_title=None)
@@ -87,15 +100,22 @@ app.layout = html.Div([
     dcc.Interval(id="interval_prediction", interval=5000),
     html.H2(children="Music genre classification"),
     html.Br(),
+    html.Div(
+        [
+            dcc.Dropdown(FILE_NAMES, str(FILE_NAME.name), id="dropdown_files", style={"width": "40%"}),
+            html.Div(id="dropdown_output_container")
+        ]
+    ),
     html.Audio(id="audiospeler",
                src="data:audio/mpeg;base64,{}".format(encoded_sound.decode()),
                controls=True,
                autoPlay=False,
                style={"width": "100%"}),
     dcc.Graph(id="client_graph"),
+    html.H2(children="Real-time prediction"),
     html.Div(className="container", children=[dcc.Markdown(id="pred_content", children="N/A")]),
-    html.Button(id='butt', children="Send request"),
-    dcc.Markdown(id="testbutt", children="N/A")
+    html.H2(children="Overall prediction"),
+    dcc.Markdown(id="pred_overall", children=predict_genre_overall(split_data(data=np_data, sr=sr)))
 ])
 
 
@@ -103,17 +123,26 @@ app.layout = html.Div([
 # CALLBACKS ---------------------------------------------------------
 
 @app.callback(
-    Output("testbutt", "children"),
-    Input("butt", "n_clicks"))
-def test_request(n_clicks):
-    response = requests.get("http://predapp:8080/")
-    return str(response.content)
+    Output("dropdown_output_container", "children"),
+    Output("pred_overall", "children"),
+    Output("audiospeler", "src"),
+    Input("dropdown_files", "value")
+)
+def update_dropdown(value):
+    global encoded_sound, np_data, sr, df_raw, df
+    print("Dropdown value", value)
+    encoded_sound, np_data, sr, df_raw, df = read_data(Path("../test/resources", value))
+    encoded_str = "data:audio/mpeg;base64,{}".format(encoded_sound.decode())
+    return str(Path("../test/resources", value)), predict_genre_overall(split_data(data=np_data, sr=sr)), encoded_str
 
 @app.callback(
     Output("client_fig_data", "data"),
     Input("client_interval", "interval")
 )
 def update_figure(interval):
+    return waveplot(df)
+
+def waveplot(df):
     fig = px.line(df, x="time", y="data")
     fig.add_annotation(
         x=0.2,
@@ -137,13 +166,15 @@ def update_prediction(current_position):
     # app.logger.info("Updating the prediction")
     position = int(current_position * len(df_raw))
     window = int(3 * sr)
-    dat = df_raw.iloc[position: position+window]
+    dat = df_raw.iloc[position:position+window]
     features = split_data(dat.data.values, sr)
     prediction = predict_genre(features)
+    from_date = f"00:{dat.time.min().minute:02d}:{dat.time.min().second:02d}"
+    to_date = f"00:{dat.time.max().minute:02d}:{dat.time.max().second:02d}"
     return f"""
 **Current position**: {position}
 
-**From** {dat.time.min()} **to** {dat.time.max()}
+**From** {from_date} **to** {to_date}
 
 **Prediction**: {prediction}
 """

@@ -1,11 +1,11 @@
 version: "3.7"
 services:
-  tensorflow:
-    image: python38
-    container_name: tensorflow
-    command: bash
-    volumes:
-      - ./:/workdir/
+  # tensorflow:
+  #   image: python38
+  #   container_name: tensorflow
+  #   command: bash
+  #   volumes:
+  #     - ./:/workdir/
   dashapp:
     image: dashapp
     container_name: dashapp
@@ -17,7 +17,8 @@ services:
       - "8050:8050"
     links:
       - predapp
-    # volumes:
+    volumes:
+      - ./:/workdir/
     # command: python /workdir/app/dashboard.py
   predapp:
     image: predapp
@@ -28,6 +29,7 @@ services:
       target: predapp
     ports:
       - "8080:8080"
-    # volumes:
+    volumes:
+      - ./:/workdir/
     # command: python /workdir/app/app.py
 
