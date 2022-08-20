@@ -63,7 +63,7 @@ def predict_genre_overall(features, host, port):
     return f"{predicted_label} ({probability}%)"
 
 # Default sound file
-FILE_NAME = Path("../test/resources/javanaise.wav")
+FILE_NAME = Path("../test/resources/mix.wav")
 
 # List the available files
 FILE_NAMES = [str(path.name) for path in Path("../test/resources/").glob("*.wav")]
