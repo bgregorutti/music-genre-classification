@@ -1,9 +1,0 @@
-FROM dashapp as dashapp
-RUN pip install dash
-WORKDIR /workdir/app
-CMD python dashboard.py
-
-FROM predapp as predapp
-RUN pip install flask
-WORKDIR /workdir/app
-CMD python app.py
