@@ -5,9 +5,7 @@ sample code, based on https://community.plotly.com/t/audio-file-aligned-with-gra
 #TODO add the overall prediction, based on the all music, in a separated Markdown
 
 # IMPORTS -----------------------------------------------------------
-import dash
-from dash import dcc
-from dash import html
+from dash import dcc, html, dash_table, Dash
 from dash.dependencies import Input, Output
 
 import plotly.express as px
@@ -48,19 +46,24 @@ def split_data(data, sr):
     return np.array(features)
 
 def predict_genre(features, host, port):
-    response = requests.post(f"http://{host}:{port}/classify", json=features.tolist()) #TODO env file
+    response = requests.post(f"http://{host}:{port}/classify", json=features.tolist())
     predicted_label = response.json().get("predicted_label")
     probability = round(response.json().get("probability") * 100, 2)
     return f"{predicted_label} ({probability}%)"
 
 def predict_genre_overall(features, host, port):
-    response = requests.post(f"http://{host}:{port}/classify_overall", json=features.tolist()) #TODO env file
+    response = requests.post(f"http://{host}:{port}/classify_overall", json=features.tolist())
     if response.status_code != 200:
         return "N/A"
 
-    predicted_label = response.json().get("predicted_label")
-    probability = round(response.json().get("probability") * 100, 2)
-    return f"{predicted_label} ({probability}%)"
+    # predicted_label = response.json().get("predicted_label")
+    # probability = round(response.json().get("probability") * 100, 2)
+    # return f"{predicted_label} ({probability}%)"
+
+    predicted_labels = response.json().get("predicted_labels")
+    probabilities = response.json().get("probabilities")
+    genres = [{"Predicted label": predicted_labels[k], "Probability": f"{probabilities[k]*100:.2f}%"} for k in np.argsort(probabilities)[::-1]]
+    return genres
 
 # Default sound file
 FILE_NAME = Path("../test/resources/mix.wav")
@@ -95,10 +98,8 @@ encoded_sound, np_data, sr, df_raw, df = read_data(FILE_NAME)
 PREDAPP_IP, PREDAPP_PORT = environment()
 
 # MAIN --------------------------------------------------------------
-app = dash.Dash(__name__, title="Audio analysis", update_title=None)
-
+app = Dash(__name__, title="Audio analysis", update_title=None)
 app.logger.error("{}:{}".format(PREDAPP_IP, PREDAPP_PORT))
-
 
 app.layout = html.Div([
     dcc.Store(id="client_content", data="DATA"),
@@ -123,7 +124,16 @@ app.layout = html.Div([
     html.H2(children="Real-time prediction"),
     html.Div(className="container", children=[dcc.Markdown(id="pred_content", children="N/A")]),
     html.H2(children="Overall prediction"),
-    dcc.Markdown(id="pred_overall", children=predict_genre_overall(features=split_data(data=np_data, sr=sr), host=PREDAPP_IP, port=PREDAPP_PORT))
+    html.Div(className="datatable_container", children=[
+        dash_table.DataTable(
+            id="pred_overall",
+            columns=[{"name": "Predicted label", "id": "Predicted label", "deletable": False, "selectable": True},
+                    {"name": "Probability", "id": "Probability", "deletable": False, "selectable": True}],
+            data=predict_genre_overall(features=split_data(data=np_data, sr=sr), host=PREDAPP_IP, port=PREDAPP_PORT)
+        )],
+        style={"width": "40%"}
+    ),
+    # dcc.Markdown(id="pred_overall", children=predict_genre_overall(features=split_data(data=np_data, sr=sr), host=PREDAPP_IP, port=PREDAPP_PORT))
 ])
 
 
@@ -132,7 +142,7 @@ app.layout = html.Div([
 
 @app.callback(
     Output("dropdown_output_container", "children"),
-    Output("pred_overall", "children"),
+    Output("pred_overall", "data"),
     Output("audiospeler", "src"),
     Input("dropdown_files", "value")
 )
@@ -176,9 +186,14 @@ def update_prediction(current_position):
     window = int(3 * sr)
     dat = df_raw.iloc[position:position+window]
     features = split_data(dat.data.values, sr)
-    prediction = predict_genre(features=features, host=PREDAPP_IP, port=PREDAPP_PORT)
-    from_date = f"00:{dat.time.min().minute:02d}:{dat.time.min().second:02d}"
-    to_date = f"00:{dat.time.max().minute:02d}:{dat.time.max().second:02d}"
+    if not features.size:
+        prediction = "N/A"
+        from_date = -1
+        to_date = -1
+    else:
+        prediction = predict_genre(features=features, host=PREDAPP_IP, port=PREDAPP_PORT)
+        from_date = f"00:{dat.time.min().minute:02d}:{dat.time.min().second:02d}"
+        to_date = f"00:{dat.time.max().minute:02d}:{dat.time.max().second:02d}"
     return f"""
 **Current position**: {position}
 

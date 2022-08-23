@@ -26,6 +26,10 @@ def classify():
     if data.shape[0] > 1:
         app.logger.warning("Trying to predict on two or more data. Not implemented yet...")
 
+    if not data.size:
+        app.logger.warning("Empty data")
+        return jsonify({})
+
     predictions = MODEL.predict(data, verbose=0)
     predicted_label = LABELS[np.argmax(predictions)]
     return jsonify({"predicted_label": predicted_label, "probability": float(np.max(predictions))})
@@ -37,23 +41,19 @@ def classify_overall(): #TODO push a table of the guessed genres with probabilit
     app.logger.info(f"Receiving data of shape: {data.shape}")
     data = data[:, :130, :, :] #TODO to be fixed
 
+    # Predict each sequence and get the corresponding labels
     predictions = MODEL.predict(data, verbose=0)
-
-    # predicted_label
     predicted_labels = LABELS[np.argmax(predictions, axis=1)]
-    predicted_label = most_frequent(predicted_labels)
 
-    # probability
-    probability = np.mean(np.max(predictions[predicted_labels == predicted_label], axis=1))
+    # Compute the number of times each label is predicted
+    predicted_labels, probabilities = np.unique(predicted_labels, return_counts=True)
+    probabilities = probabilities / np.sum(probabilities)
 
-    app.logger.info(predicted_label)
-    app.logger.info(np.max(predictions[predicted_labels == predicted_label], axis=1))
+    return jsonify({"predicted_labels": list(predicted_labels), "probabilities": list(probabilities)})
 
-    return jsonify({"predicted_label": predicted_label, "probability": float(probability)})
-
-def most_frequent(arr):
-    values, counts = np.unique(arr, return_counts=True)
-    return values[np.argmax(counts)]
+# def most_frequent(arr):
+#     values, counts = np.unique(arr, return_counts=True)
+#     return values[np.argmax(counts)]
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=8080)
