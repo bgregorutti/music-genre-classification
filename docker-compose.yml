@@ -1,17 +1,11 @@
 version: "3.7"
 services:
-  # tensorflow:
-  #   image: python38
-  #   container_name: tensorflow
-  #   command: bash
-  #   volumes:
-  #     - ./:/workdir/
   dashapp:
     image: dashapp
     container_name: dashapp
     build: 
       context: .
-      dockerfile: Dockerfile-fix
+      dockerfile: Dockerfile
       target: dashapp
     ports:
       - "8050:8050"
@@ -22,17 +16,15 @@ services:
     environment:
       - PREDAPP_IP
       - PREDAPP_PORT
-    # command: python /workdir/app/dashboard.py
   predapp:
     image: predapp
     container_name: predapp
     build: 
       context: .
-      dockerfile: Dockerfile-fix
+      dockerfile: Dockerfile
       target: predapp
     ports:
       - "$PREDAPP_PORT:8080"
     volumes:
       - ./:/workdir/
-    # command: python /workdir/app/app.py
 

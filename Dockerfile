@@ -1,15 +1,17 @@
 FROM python:3.8 as dashapp
-RUN apt-get update && apt-get install ffmpeg -y
 COPY . /workdir/
-RUN pip install /workdir/
-RUN pip install dash
+RUN apt-get update && \
+    apt-get install ffmpeg -y && \
+    pip install /workdir/ dash && \
+    apt autoclean
 WORKDIR /workdir/app
 CMD python dashboard.py
 
 FROM python:3.8 as predapp
-RUN apt-get update
-RUN pip install --upgrade pip && \
-    pip install tensorflow flask
+RUN apt-get update && \
+    pip install --upgrade pip && \
+    pip install tensorflow flask && \
+    apt autoclean
 COPY app/ /workdir/app/
 COPY model/ /workdir/model/
 WORKDIR /workdir/app
