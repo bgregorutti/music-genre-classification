@@ -14,22 +14,23 @@ from layout import get_layout
 from utils import split_data, predict_genre, predict_genre_overall, read_data
 
 # Default sound file
-FILE_NAME = Path("../test/resources/mix.wav")
+RESOURCE_FOLDER = Path("../test/resources")
+FILE_NAME = Path(RESOURCE_FOLDER, "mix.wav")
 
 # List the available files
-FILE_NAMES = [str(path.name) for path in Path("../test/resources/").glob("*.wav")]
+FILE_NAMES = [str(path.name) for path in Path(RESOURCE_FOLDER).glob("*.wav")]
 
 # Get the environment variables
 PREDAPP_IP, PREDAPP_PORT = environment()
 
 # Get the data
-encoded_sound, sr, df_raw, df = read_data(FILE_NAME)
-init_genre_overall = predict_genre_overall(features=split_data(data=df_raw.data.values, sr=sr), host=PREDAPP_IP, port=PREDAPP_PORT)
+ENCODED_SOUND, SAMPLE_RATE, RAW_DATA, df = read_data(FILE_NAME)
+INIT_GENRE = predict_genre_overall(features=split_data(data=RAW_DATA.data.values, sr=SAMPLE_RATE), host=PREDAPP_IP, port=PREDAPP_PORT)
 
 # Run the application
 app = Dash(__name__, title="Audio analysis", update_title=None)
 app.logger.error("{}:{}".format(PREDAPP_IP, PREDAPP_PORT))
-app.layout = get_layout(file_path=FILE_NAME, file_paths=FILE_NAMES, encoded_sound=encoded_sound, data=init_genre_overall)
+app.layout = get_layout(file_path=FILE_NAME, file_paths=FILE_NAMES, encoded_sound=ENCODED_SOUND, data=INIT_GENRE)
 
 # Define the callbacks
 @app.callback(
@@ -39,18 +40,19 @@ app.layout = get_layout(file_path=FILE_NAME, file_paths=FILE_NAMES, encoded_soun
     Input("dropdown_files", "value")
 )
 def update_dropdown(value):
-    global encoded_sound, sr, df_raw, df
+    global ENCODED_SOUND, SAMPLE_RATE, RAW_DATA, SAMPLE_DATA
     print("Dropdown value", value)
-    encoded_sound, sr, df_raw, df = read_data(Path("../test/resources", value))
-    encoded_str = "data:audio/mpeg;base64,{}".format(encoded_sound.decode())
-    return str(Path("../test/resources", value)), predict_genre_overall(features=split_data(data=df_raw.data.values, sr=sr), host=PREDAPP_IP, port=PREDAPP_PORT), encoded_str
+    ENCODED_SOUND, SAMPLE_RATE, RAW_DATA, SAMPLE_DATA = read_data(Path("../test/resources", value))
+    encoded_str = "data:audio/mpeg;base64,{}".format(ENCODED_SOUND.decode())
+    return str(Path("../test/resources", value)), predict_genre_overall(features=split_data(data=RAW_DATA.data.values, sr=SAMPLE_RATE), host=PREDAPP_IP, port=PREDAPP_PORT), encoded_str
 
 @app.callback(
     Output("client_fig_data", "data"),
     Input("client_interval", "interval")
 )
 def update_figure(interval):
-    return waveplot(df)
+    print(SAMPLE_DATA.head())
+    return waveplot(SAMPLE_DATA)
 
 def waveplot(df):
     fig = px.line(df, x="time", y="data")
@@ -74,10 +76,10 @@ def waveplot(df):
 )
 def update_prediction(current_position):
     # app.logger.info("Updating the prediction")
-    position = int(current_position * len(df_raw))
-    window = int(3 * sr)
-    dat = df_raw.iloc[position:position+window]
-    features = split_data(dat.data.values, sr)
+    position = int(current_position * len(RAW_DATA))
+    window = int(3 * SAMPLE_RATE)
+    dat = RAW_DATA.iloc[position:position+window]
+    features = split_data(dat.data.values, SAMPLE_RATE)
     if not features.size:
         prediction = "N/A"
         from_date = -1
