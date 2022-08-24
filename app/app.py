@@ -9,20 +9,28 @@ LABELS = np.array(["blues", "classical", "country", "disco", "hiphop", "jazz", "
 
 @app.before_first_request
 def before_first_request():
+    """
+    Load the Keras model before the first request
+    """
     global MODEL
     app.logger.warning("Loading Keras model...")
     MODEL = load_model("../model")
 
 @app.route("/")
 def index():
+    """
+    Default route
+    """
     app.logger.warning("Index")
     return "Application running"
 
 @app.route("/classify", methods=["POST"])
 def classify():
+    """
+    Predict the genre on one music sequence
+    """
     data = np.array(request.json)
-    # app.logger.info("Classify service")
-    # app.logger.info(f"Receiving data of shape: {data.shape}")
+
     if data.shape[0] > 1:
         app.logger.warning("Trying to predict on two or more data. Not implemented yet...")
 
@@ -32,13 +40,17 @@ def classify():
 
     predictions = MODEL.predict(data, verbose=0)
     predicted_label = LABELS[np.argmax(predictions)]
+
+    app.logger.info(f"Data shape: {data.shape}. Predicted genre: {predicted_label}")
+
     return jsonify({"predicted_label": predicted_label, "probability": float(np.max(predictions))})
 
 @app.route("/classify_overall", methods=["POST"])
-def classify_overall(): #TODO push a table of the guessed genres with probabilities
+def classify_overall():
+    """
+    Predict the genre from the entire song
+    """
     data = np.array(request.json)
-    app.logger.info("Classify service")
-    app.logger.info(f"Receiving data of shape: {data.shape}")
     data = data[:, :130, :, :] #TODO to be fixed
 
     # Predict each sequence and get the corresponding labels
@@ -49,11 +61,9 @@ def classify_overall(): #TODO push a table of the guessed genres with probabilit
     predicted_labels, probabilities = np.unique(predicted_labels, return_counts=True)
     probabilities = probabilities / np.sum(probabilities)
 
-    return jsonify({"predicted_labels": list(predicted_labels), "probabilities": list(probabilities)})
+    app.logger.info(f"Data shape: {data.shape}. Predicted genre: {predicted_labels[0]}")
 
-# def most_frequent(arr):
-#     values, counts = np.unique(arr, return_counts=True)
-#     return values[np.argmax(counts)]
+    return jsonify({"predicted_labels": list(predicted_labels), "probabilities": list(probabilities)})
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=8080)

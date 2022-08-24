@@ -13,8 +13,14 @@ from config import environment
 from layout import get_layout
 from utils import split_data, predict_genre, predict_genre_overall, read_data
 
-# Default sound file
-RESOURCE_FOLDER = Path("../test/resources")
+# Run the application
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+app = Dash(__name__, title="Audio analysis", update_title=None, external_stylesheets=external_stylesheets)
+
+# Path of the assets
+RESOURCE_FOLDER = Path("assets/")
+
+# Path of the default WAV file
 FILE_NAME = Path(RESOURCE_FOLDER, "mix.wav")
 
 # List the available files
@@ -27,8 +33,6 @@ PREDAPP_IP, PREDAPP_PORT = environment()
 ENCODED_SOUND, SAMPLE_RATE, RAW_DATA, df = read_data(FILE_NAME)
 INIT_GENRE = predict_genre_overall(features=split_data(data=RAW_DATA.data.values, sr=SAMPLE_RATE), host=PREDAPP_IP, port=PREDAPP_PORT)
 
-# Run the application
-app = Dash(__name__, title="Audio analysis", update_title=None)
 app.logger.error("{}:{}".format(PREDAPP_IP, PREDAPP_PORT))
 app.layout = get_layout(file_path=FILE_NAME, file_paths=FILE_NAMES, encoded_sound=ENCODED_SOUND, data=INIT_GENRE)
 
@@ -40,21 +44,39 @@ app.layout = get_layout(file_path=FILE_NAME, file_paths=FILE_NAMES, encoded_soun
     Input("dropdown_files", "value")
 )
 def update_dropdown(value):
+    """
+    Callback for the dropdown
+
+    Args:
+        value: value of the dropdown
+    
+    Returns:
+        Dropdown output, a prediction of the music genre and the encoded sound
+    """
     global ENCODED_SOUND, SAMPLE_RATE, RAW_DATA, SAMPLE_DATA
     print("Dropdown value", value)
-    ENCODED_SOUND, SAMPLE_RATE, RAW_DATA, SAMPLE_DATA = read_data(Path("../test/resources", value))
+    ENCODED_SOUND, SAMPLE_RATE, RAW_DATA, SAMPLE_DATA = read_data(Path(RESOURCE_FOLDER, value))
     encoded_str = "data:audio/mpeg;base64,{}".format(ENCODED_SOUND.decode())
-    return str(Path("../test/resources", value)), predict_genre_overall(features=split_data(data=RAW_DATA.data.values, sr=SAMPLE_RATE), host=PREDAPP_IP, port=PREDAPP_PORT), encoded_str
+    dropdown_output = f"File loaded: {Path(RESOURCE_FOLDER, value)}"
+    return dropdown_output, predict_genre_overall(features=split_data(data=RAW_DATA.data.values, sr=SAMPLE_RATE), host=PREDAPP_IP, port=PREDAPP_PORT), encoded_str
 
 @app.callback(
     Output("client_fig_data", "data"),
     Input("client_interval", "interval")
 )
 def update_figure(interval):
-    print(SAMPLE_DATA.head())
     return waveplot(SAMPLE_DATA)
 
 def waveplot(df):
+    """
+    Plot the signal
+
+    Args:
+        df: a DataFrame object with columns ["time", "data"]
+    
+    Returns:
+        A plotly's Figure object
+    """
     fig = px.line(df, x="time", y="data")
     fig.add_annotation(
         x=0.2,
@@ -75,7 +97,9 @@ def waveplot(df):
     Input("current_position", "data")
 )
 def update_prediction(current_position):
-    # app.logger.info("Updating the prediction")
+    """
+    Update the prediction wrt the current song position
+    """
     position = int(current_position * len(RAW_DATA))
     window = int(3 * SAMPLE_RATE)
     dat = RAW_DATA.iloc[position:position+window]
@@ -96,7 +120,7 @@ def update_prediction(current_position):
 **Prediction**: {prediction}
 """
 
-# client-side callback with javascript to update graph annotations.
+# client-side callbacks with javascript to update graph annotations and position
 app.clientside_callback(
     """
     function TrackCurrentTime(figure_data, n_intervals){
