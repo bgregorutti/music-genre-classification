@@ -7,7 +7,15 @@ from tensorflow.keras.models import Model
 
 def convolutional(input_shape, nr_classes, padding="valid"):
     """
-    TODO
+    Two-blocks convolutional network
+
+    Args:
+        input_shape: input dimension of the network
+        nr_classes: numper of classes
+        padding: the padding of the convolutions, default: "valid"
+    
+    Returns:
+        An object of class keras.model.Model
     """
     input_layer = Input(input_shape)
 
@@ -28,7 +36,16 @@ def convolutional(input_shape, nr_classes, padding="valid"):
 
 def deep_convolutional(input_shape, nr_classes, filters=16, nr_layers=2):
     """
-    TODO
+    Deep convolutional network
+
+    Args:
+        input_shape: input dimension of the network
+        nr_classes: numper of classes
+        filters: the number of channels in the first convolutional layer, default: 16
+        nr_layers: the number of layers, default: 2
+    
+    Returns:
+        An object of class keras.model.Model
     """
     input_layer = Input(input_shape)
     x = Conv2D(filters=filters, kernel_size=(3, 3), activation="relu", padding="same")(input_layer)
