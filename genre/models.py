@@ -48,3 +48,15 @@ def deep_convolutional(input_shape, nr_classes, filters=16, nr_layers=2):
     model = Model(input_layer, output_layer)
     model.summary()
     return model
+
+def plot_network():
+    """
+    Plot the network using visualkeras library
+    """
+    from tensorflow.keras.models import load_model
+    import visualkeras
+    from PIL import ImageFont
+    
+    MODEL = load_model("../model")
+    font = ImageFont.truetype("arial", 32)
+    visualkeras.layered_view(MODEL, to_file="output.png", legend=True, font=font)
