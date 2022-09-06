@@ -31,7 +31,7 @@ FILE_NAMES = [str(path.name) for path in Path(RESOURCE_FOLDER).glob("*.wav")]
 PREDAPP_IP, PREDAPP_PORT = environment()
 
 # Get the data
-ENCODED_SOUND, SAMPLE_RATE, RAW_DATA, df = read_data(FILE_NAME)
+ENCODED_SOUND, SAMPLE_RATE, RAW_DATA, SAMPLE_DATA = read_data(FILE_NAME)
 INIT_GENRE = predict_genre_overall(features=split_data(data=RAW_DATA.data.values, sr=SAMPLE_RATE), host=PREDAPP_IP, port=PREDAPP_PORT)
 
 app.logger.error("{}:{}".format(PREDAPP_IP, PREDAPP_PORT))
@@ -60,9 +60,9 @@ def update_dropdown(value):
     ENCODED_SOUND, SAMPLE_RATE, RAW_DATA, SAMPLE_DATA = read_data(Path(RESOURCE_FOLDER, value))
     encoded_str = "data:audio/mpeg;base64,{}".format(ENCODED_SOUND.decode())
     dropdown_output = f"File loaded: {Path(RESOURCE_FOLDER, value)}"
-    return dropdown_output, predict_genre_overall(features=split_data(data=RAW_DATA.data.values, sr=SAMPLE_RATE), host=PREDAPP_IP, port=PREDAPP_PORT), encoded_str, waveplot(SAMPLE_DATA)
+    return dropdown_output, predict_genre_overall(features=split_data(data=RAW_DATA.data.values, sr=SAMPLE_RATE), host=PREDAPP_IP, port=PREDAPP_PORT), encoded_str, waveplot(SAMPLE_DATA, color="#636efa")
 
-def waveplot(df):
+def waveplot(df, color="#BCE1FF"):
     """
     Plot the signal
 
@@ -85,7 +85,7 @@ def waveplot(df):
         align="center",
         bgcolor="red",
     )
-    fig.update_traces(line_color="#BCE1FF")
+    fig.update_traces(line_color=color)
     return fig
 
 @app.callback(
@@ -115,6 +115,21 @@ def update_prediction(current_position):
 
 **Prediction**: {prediction}
 """
+
+#TODO trying to update the figure with a different line color during the sound playing
+# @app.callback(
+#     Output("client_graph", "figure"),
+#     Output("client_content", "data"),
+#     Input("client_fig_data", "data"),
+#     Input("client_interval", "n_intervals")
+# )
+# def update_graph_position(fig_data, n_intervals):
+#     """
+#     Update the graph during the runtime
+#     """
+#     position = int(current_position * len(RAW_DATA))
+#     df = SAMPLE_DATA.iloc[:position]
+#     return waveplot(df, color="#636efa")
 
 # client-side callbacks with javascript to update graph annotations and position
 app.clientside_callback(
