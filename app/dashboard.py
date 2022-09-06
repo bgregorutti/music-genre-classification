@@ -6,6 +6,7 @@ The layout is based on https://community.plotly.com/t/audio-file-aligned-with-gr
 
 from dash import Dash
 from dash.dependencies import Input, Output
+import dash_bootstrap_components as dbc
 import plotly.express as px
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from layout import get_layout
 from utils import split_data, predict_genre, predict_genre_overall, read_data
 
 # Run the application
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes.BOOTSTRAP]
 app = Dash(__name__, title="Audio analysis", update_title=None, external_stylesheets=external_stylesheets)
 
 # Path of the assets
@@ -41,6 +42,7 @@ app.layout = get_layout(file_path=FILE_NAME, file_paths=FILE_NAMES, encoded_soun
     Output("dropdown_output_container", "children"),
     Output("pred_overall", "data"),
     Output("audiospeler", "src"),
+    Output("client_fig_data", "data"),
     Input("dropdown_files", "value")
 )
 def update_dropdown(value):
@@ -58,14 +60,7 @@ def update_dropdown(value):
     ENCODED_SOUND, SAMPLE_RATE, RAW_DATA, SAMPLE_DATA = read_data(Path(RESOURCE_FOLDER, value))
     encoded_str = "data:audio/mpeg;base64,{}".format(ENCODED_SOUND.decode())
     dropdown_output = f"File loaded: {Path(RESOURCE_FOLDER, value)}"
-    return dropdown_output, predict_genre_overall(features=split_data(data=RAW_DATA.data.values, sr=SAMPLE_RATE), host=PREDAPP_IP, port=PREDAPP_PORT), encoded_str
-
-@app.callback(
-    Output("client_fig_data", "data"),
-    Input("client_interval", "interval")
-)
-def update_figure(interval):
-    return waveplot(SAMPLE_DATA)
+    return dropdown_output, predict_genre_overall(features=split_data(data=RAW_DATA.data.values, sr=SAMPLE_RATE), host=PREDAPP_IP, port=PREDAPP_PORT), encoded_str, waveplot(SAMPLE_DATA)
 
 def waveplot(df):
     """
@@ -90,6 +85,7 @@ def waveplot(df):
         align="center",
         bgcolor="red",
     )
+    fig.update_traces(line_color="#BCE1FF")
     return fig
 
 @app.callback(
@@ -160,14 +156,14 @@ app.clientside_callback(
     """
     function GetCurrentPosition(figure_data, n_intervals){
         if(figure_data === undefined){
-            return "ERROR: no data for figure";
+            return 0;
         }
         
         var myaudio = document.getElementById("audiospeler");
         var cur_time = myaudio.currentTime;
         var tot_time = myaudio.duration;
         if( !tot_time ) {
-            return "ERROR: no data for sound";
+            return 0;
         }
         var ratio_time = cur_time / tot_time   
               

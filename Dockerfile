@@ -2,7 +2,7 @@ FROM python:3.8 as dashapp
 COPY . /workdir/
 RUN apt-get update && \
     apt-get install ffmpeg -y && \
-    pip install /workdir/ dash && \
+    pip install /workdir/ dash dash-bootstrap-components && \
     apt autoclean
 WORKDIR /workdir/app
 CMD python dashboard.py
