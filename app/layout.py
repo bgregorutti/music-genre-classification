@@ -29,7 +29,7 @@ def get_layout(file_path, file_paths, encoded_sound, data):
 
     sidebar_layout = html.Div(style=get_sidebar_style(), children=[
         html.H2(children="Music genre classification", className="display-4"),
-        dcc.Markdown("A minimal dash application that predict the genre from music data", className="lead"),
+        dcc.Markdown("A minimal dash application that predicts the genre from music data", className="lead"),
         html.Hr(),
         html.H3(children="Real-time prediction", className="display-6"),
         html.Div(className="container", children=[dcc.Markdown(id="pred_content", children="N/A", className="lead")]),
