@@ -3,6 +3,7 @@ A minimal dash application for classifying music genre
 
 The layout is based on https://community.plotly.com/t/audio-file-aligned-with-graph/60994
 """
+import time
 
 from dash import Dash
 from dash.dependencies import Input, Output
@@ -34,7 +35,7 @@ PREDAPP_IP, PREDAPP_PORT = environment()
 ENCODED_SOUND, SAMPLE_RATE, RAW_DATA, SAMPLE_DATA = read_data(FILE_NAME)
 INIT_GENRE = predict_genre_overall(features=split_data(data=RAW_DATA.data.values, sr=SAMPLE_RATE), host=PREDAPP_IP, port=PREDAPP_PORT)
 
-app.logger.error("{}:{}".format(PREDAPP_IP, PREDAPP_PORT))
+app.logger.error("Connecting to {}:{}".format(PREDAPP_IP, PREDAPP_PORT))
 app.layout = get_layout(file_path=FILE_NAME, file_paths=FILE_NAMES, encoded_sound=ENCODED_SOUND, data=INIT_GENRE)
 
 # Define the callbacks
@@ -60,7 +61,10 @@ def update_dropdown(value):
     ENCODED_SOUND, SAMPLE_RATE, RAW_DATA, SAMPLE_DATA = read_data(Path(RESOURCE_FOLDER, value))
     encoded_str = "data:audio/mpeg;base64,{}".format(ENCODED_SOUND.decode())
     dropdown_output = f"File loaded: {Path(RESOURCE_FOLDER, value)}"
-    return dropdown_output, predict_genre_overall(features=split_data(data=RAW_DATA.data.values, sr=SAMPLE_RATE), host=PREDAPP_IP, port=PREDAPP_PORT), encoded_str, waveplot(SAMPLE_DATA, color="#636efa")
+    return (dropdown_output, 
+            predict_genre_overall(features=split_data(data=RAW_DATA.data.values, sr=SAMPLE_RATE), host=PREDAPP_IP, port=PREDAPP_PORT), 
+            encoded_str, 
+            waveplot(SAMPLE_DATA, color="#636efa"))
 
 def waveplot(df, color="#BCE1FF"):
     """
@@ -73,19 +77,11 @@ def waveplot(df, color="#BCE1FF"):
         A plotly's Figure object
     """
     fig = px.line(df, x="time", y="data")
-    fig.add_annotation(
-        x=0.2,
-        y=0.5,
-        xref="paper",
-        yref="paper",
-        xshift=0,
-        text="position",
-        showarrow=True,
-        font=dict(family="Courier New, monospace", size=14, color="#ffffff"),
-        align="center",
-        bgcolor="red",
-    )
+    fig.add_vline(x=0)
     fig.update_traces(line_color=color)
+    
+    # Remove the ticks of the axis
+    fig.update_layout({ax: {"visible": False, "matches": None} for ax in fig.to_dict()["layout"] if "axis" in ax})
     return fig
 
 @app.callback(
@@ -106,30 +102,13 @@ def update_prediction(current_position):
         to_date = -1
     else:
         prediction = predict_genre(features=features, host=PREDAPP_IP, port=PREDAPP_PORT)
-        from_date = f"00:{dat.time.min().minute:02d}:{dat.time.min().second:02d}"
-        to_date = f"00:{dat.time.max().minute:02d}:{dat.time.max().second:02d}"
+        from_date = time.strftime("%M:%S", time.gmtime(dat.time.min()))
+        to_date = time.strftime("%M:%S", time.gmtime(dat.time.max()))
     return f"""
-**Current position**: {position}
-
 **From** {from_date} **to** {to_date}
 
 **Prediction**: {prediction}
 """
-
-#TODO trying to update the figure with a different line color during the sound playing
-# @app.callback(
-#     Output("client_graph", "figure"),
-#     Output("client_content", "data"),
-#     Input("client_fig_data", "data"),
-#     Input("client_interval", "n_intervals")
-# )
-# def update_graph_position(fig_data, n_intervals):
-#     """
-#     Update the graph during the runtime
-#     """
-#     position = int(current_position * len(RAW_DATA))
-#     df = SAMPLE_DATA.iloc[:position]
-#     return waveplot(df, color="#636efa")
 
 # client-side callbacks with javascript to update graph annotations and position
 app.clientside_callback(
@@ -141,28 +120,22 @@ app.clientside_callback(
         
         var myaudio = document.getElementById("audiospeler");
         var cur_time = myaudio.currentTime;
-        var tot_time = myaudio.duration;
-        if( !tot_time ) {
-            return [figure_data, "ERROR: no data for sound"];
-        }
-        var ratio_time = cur_time / tot_time
- 
+
         const fig = Object.assign({}, figure_data, {
             "layout": {
                 ...figure_data.layout,
-                "annotations": [{
-                    ...figure_data.layout.annotations[0],
-                    "x": ratio_time,
-                    "text": parseFloat(ratio_time).toFixed(2)
+                "shapes": [{
+                    ...figure_data.layout.shapes[0],
+                    "x0": cur_time,
+                    "x1": cur_time
                 }]
             }
         });       
               
-        return [fig, ratio_time];
+        return fig;
     }
     """,
     Output("client_graph", "figure"),
-    Output("client_content", "data"),
     Input("client_fig_data", "data"),
     Input("client_interval", "n_intervals")
 )

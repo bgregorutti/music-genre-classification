@@ -2,7 +2,7 @@
 
 This repository provides a basic approach for predicting the music genre from WAV files. This is done using a deep convolutional network trained on the well-known GTZAN dataset.
 
-A Flask application and a minimal Dash web application run a simple test for preiction, on jazz, reggae and metal musics. The prediction is done in real-time when playing the musics.
+A Flask application and a minimal Dash web application run a simple test for prediction, on jazz, reggae and metal musics. The prediction is done in real-time when playing the musics.
 
 ## Current model
 

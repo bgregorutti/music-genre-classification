@@ -95,7 +95,6 @@ def read_data(file_name):
         "time": np.array([t / sr for t in range(len(np_data))]),
         "data": np_data
     })
-    df_raw["time"] = pd.to_datetime(df_raw["time"], unit="s")
 
     target_sr = 1000
     sample = librosa.resample(np_data, orig_sr=sr, target_sr=target_sr)
@@ -104,6 +103,5 @@ def read_data(file_name):
         "time": np.array([t / target_sr for t in range(len(sample))]),
         "data": sample
     })
-    df["time"] = pd.to_datetime(df["time"], unit="s")
 
     return encoded_sound, sr, df_raw, df
