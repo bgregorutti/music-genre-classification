@@ -1,3 +1,11 @@
+"""
+Definition of the dashboard layout.
+
+The synchronisation between the music palyer and the figure is based on the following discussion
+
+https://community.plotly.com/t/audio-file-aligned-with-graph/60994
+"""
+
 from dash import dcc, html, dash_table
 import dash_bootstrap_components as dbc
 

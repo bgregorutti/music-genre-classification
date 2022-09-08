@@ -1,7 +1,5 @@
 """
 A minimal dash application for classifying music genre
-
-The layout is based on https://community.plotly.com/t/audio-file-aligned-with-graph/60994
 """
 import time
 
