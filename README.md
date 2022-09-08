@@ -50,10 +50,10 @@ Note that the model is trained on sequences of 3 seconds of music in order to co
 
 The model is trained on a sample of 80% of the data randomly chosen. The remaining 20% are used for the validation and test sets.
 
-![](confusion_140622.png)
+![](confusion.png)
 
 ***Model error during the training***
 
 The following figure represent the accuracy of the model during the training step. A slight overfitting seems to appear after 20 epochs. We should add some regularization layers or we should augment the dataset for better results.
 
-![](history_140622.png)
+![](history.png)

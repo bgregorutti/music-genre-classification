@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
+from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tensorflow.keras.utils import to_categorical
 
 from genre.evaluate import evaluate
@@ -83,8 +83,7 @@ def run_generator(model, train_generator, val_generator, X_test, y_test):
     """
     model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
     reduce_lr = ReduceLROnPlateau(monitor="val_loss")
-    early_stopping = EarlyStopping(monitor="loss", patience=3)
-    history = model.fit(train_generator, epochs=20, validation_data=val_generator, callbacks=[reduce_lr, early_stopping])
+    history = model.fit(train_generator, epochs=20, validation_data=val_generator, callbacks=[reduce_lr])
     evaluate(model, X_test, y_test, label_mapping.keys(), history)
 
 def run(model, X_train, y_train, X_test, y_test, X_val, y_val, labels):
@@ -95,9 +94,8 @@ def run(model, X_train, y_train, X_test, y_test, X_val, y_val, labels):
         model: a Keras model
         X_train, y_train, X_test, y_test, X_val, y_val, labels: numpy arrays
     """
-    model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"]) # TODO check the loss function. Should be categorical_crossentropy
+    model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"]) # TODO check the loss function. Should be categorical_crossentropy
     reduce_lr = ReduceLROnPlateau(monitor="val_loss")
-    early_stopping = EarlyStopping(monitor="loss", patience=3)
     history = model.fit(X_train, y_train, epochs=100, validation_data=(X_val, y_val),
-                        callbacks=[reduce_lr, early_stopping])
+                        callbacks=[reduce_lr])
     evaluate(model, X_test, y_test, labels, history)
