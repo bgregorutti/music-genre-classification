@@ -15,7 +15,8 @@ def evaluate(model, X_test, y_test, labels, history):
         history: the output of model.fit
     """
 
-    print(pd.Series(model.evaluate(X_test, y_test), index=model.metrics_names))
+    metrics = model.evaluate(X_test, y_test)
+    print(pd.Series(metrics, index=model.metrics_names))
         
     fig = plt.figure(figsize=(8, 6))
     plt.plot(history.history["accuracy"])
@@ -38,3 +39,5 @@ def evaluate(model, X_test, y_test, labels, history):
     plt.ylabel("True labels", fontsize=14)
     plt.title("Confusion matrix", fontsize=18)
     fig.savefig("confusion.png")
+
+    return metrics

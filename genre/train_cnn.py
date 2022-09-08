@@ -98,4 +98,4 @@ def run(model, X_train, y_train, X_test, y_test, X_val, y_val, labels):
     reduce_lr = ReduceLROnPlateau(monitor="val_loss")
     history = model.fit(X_train, y_train, epochs=100, validation_data=(X_val, y_val),
                         callbacks=[reduce_lr])
-    evaluate(model, X_test, y_test, labels, history)
+    return evaluate(model, X_test, y_test, labels, history)

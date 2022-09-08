@@ -50,10 +50,14 @@ Note that the model is trained on sequences of 3 seconds of music in order to co
 
 The model is trained on a sample of 80% of the data randomly chosen. The remaining 20% are used for the validation and test sets.
 
+The training procedure has been repeated five times for estimating the model accuracy with random train, validation and testing sets. The final model performances are:
+* Mean accuracy: 94.61% (+/- 0.40%)
+* Mean loss: 0.2192 (+/- 0.0292)
+
 ![](confusion.png)
 
 ***Model error during the training***
 
-The following figure represent the accuracy of the model during the training step. A slight overfitting seems to appear after 20 epochs. We should add some regularization layers or we should augment the dataset for better results.
+The following figure represents the accuracy of the model during the training step. A slight overfitting seems to appear after 20 epochs. We should add some regularization layers or we should augment the dataset for better results.
 
 ![](history.png)
