@@ -4,6 +4,7 @@ Variational autoencoder for image generation.
 Based on https://keras.io/examples/generative/vae/
 """
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Input, Dense, Conv2D, Flatten, Layer, Reshape, Conv2DTranspose, GlobalAveragePooling2D
 from tensorflow.keras.metrics import Mean
@@ -123,20 +124,20 @@ def conv_decoder(latent_dim=2):
         An object of class tensorflow.keras.models.Model
     """
     # Input layer
-    decoder_inpus = Input(shape=(latent_dim,))
+    decoder_inputs = Input(shape=(latent_dim,))
 
     # Fully connected layer and reshape
-    x = Dense(7 * 7 * 64, activation="relu")(decoder_inpus)
+    x = Dense(7 * 7 * 64, activation="relu")(decoder_inputs)
     x = Reshape((7, 7, 64))(x)
 
     # Transposed convolutional layers
     x = Conv2DTranspose(64, 3, activation="relu", strides=2, padding="same")(x)
     x = Conv2DTranspose(32, 3, activation="relu", strides=2, padding="same")(x)
-    
+
     # Network output
     decoder_outputs = Conv2DTranspose(1, 3, activation="sigmoid", padding="same")(x)
 
-    return Model(decoder_inpus, decoder_outputs, name="decoder")
+    return Model(decoder_inputs, decoder_outputs, name="decoder")
 
 def run():
     input_shape = (28, 28, 1)
@@ -149,8 +150,12 @@ def run():
     decoder.summary()
     
     vae = VAE(encoder, decoder)
-    # vae.compile(optimizer="adam")
-    # vae.fit(mnist_digits, epochs=30, batch_size=128)
+    vae.compile(optimizer="adam")
+
+    (x_train, _), (x_test, _) = tf.keras.datasets.mnist.load_data()
+    mnist_digits = np.concatenate([x_train, x_test], axis=0)
+    mnist_digits = np.expand_dims(mnist_digits, -1).astype("float32") / 255
+    vae.fit(mnist_digits, epochs=10, batch_size=128)
 
 if __name__ == "__main__":
     run()
