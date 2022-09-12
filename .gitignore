@@ -1,6 +1,7 @@
 data/
 data.csv
 output.png
+notebooks/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
