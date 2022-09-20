@@ -145,3 +145,25 @@ def wrapper(folder, fileName):
     """
 
     return pd.read_csv(os.path.join(folder, fileName)).values
+
+def reconstruct_audio():
+    y, sr = librosa.load("data/genres_wav/blues_00000.wav", mono=True, duration=30)
+    print(y.shape)
+    # from IPython.display import Audio
+    # Audio(data=y, rate=sr)
+
+    spectre = librosa.stft(y)
+    print(spectre.shape)
+
+    import matplotlib.pyplot as plt
+    plt.imshow(librosa.amplitude_to_db(np.abs(spectre)), aspect="auto")
+    plt.show()
+    
+    import soundfile as sf
+    signal = librosa.istft(spectre, length=len(y))
+    print(signal.shape)
+
+    sf.write("data/test.wav", signal, 22050, subtype='PCM_24')
+
+if __name__ == "__main__":
+    reconstruct_audio()

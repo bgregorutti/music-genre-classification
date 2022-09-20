@@ -6,7 +6,7 @@ Based on https://keras.io/examples/generative/vae/
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Input, Dense, Conv2D, Flatten, Layer, Reshape, Conv2DTranspose, GlobalAveragePooling2D
+from tensorflow.keras.layers import Input, Dense, Conv2D, Flatten, Layer, Reshape, Conv2DTranspose, GlobalAveragePooling2D, MaxPooling2D, Dropout
 from tensorflow.keras.metrics import Mean
 from tensorflow.keras.models import Model
 from tensorflow.keras.losses import binary_crossentropy
@@ -96,15 +96,18 @@ def conv_encoder(input_shape, latent_dim=2):
     encoder_inputs = Input(shape=input_shape)
 
     # Convolutional layers
-    x = Conv2D(32, 3, activation="relu", strides=2, padding="same")(encoder_inputs)
-    x = Conv2D(64, 3, activation="relu", strides=2, padding="same")(x)
+    x = Conv2D(filters=32, kernel_size=(3, 3), activation="relu", padding="same")(encoder_inputs)
+    x = MaxPooling2D((2, 2), padding="same")(x)
 
-    # Flatten and fully connected layer
+    x = Conv2D(filters=128, kernel_size=(3, 3), activation="relu", padding="same")(x)
+    x = MaxPooling2D((2, 2), padding="same")(x)
+    x = Dropout(.3)(x)
+
+    # Flatten / pooling and fully connected layer
     x = GlobalAveragePooling2D()(x)
-    # x = Flatten()(x)
-    x = Dense(16, activation="relu")(x)
+    x = Dense(512, activation="relu")(x)
 
-    # Latent representation, mean and log variance
+    # Latent representation, mean and log-variance
     z_mean = Dense(latent_dim, name="z_mean")(x)
     z_log_var = Dense(latent_dim, name="z_log_var")(x)
 
@@ -113,7 +116,7 @@ def conv_encoder(input_shape, latent_dim=2):
     
     return Model(encoder_inputs, [z_mean, z_log_var, z], name="encoder")
 
-def conv_decoder(latent_dim=2):
+def conv_decoder(img_shape, latent_dim=2, filters=[128, 32]):
     """
     Encoder model
 
@@ -123,19 +126,28 @@ def conv_decoder(latent_dim=2):
     Returns:
         An object of class tensorflow.keras.models.Model
     """
+    # Final image shape needed
+    row, col, channels = img_shape
+
     # Input layer
     decoder_inputs = Input(shape=(latent_dim,))
 
     # Fully connected layer and reshape
-    x = Dense(7 * 7 * 64, activation="relu")(decoder_inputs)
-    x = Reshape((7, 7, 64))(x)
+    target_shape = (
+        int(np.ceil(row / 4)),
+        int(np.ceil(col / 4)),
+        filters[0]
+    )
+    units = target_shape[0] * target_shape[1] * target_shape[2]
+    x = Dense(units, activation="relu")(decoder_inputs)
+    x = Reshape(target_shape)(x)
 
     # Transposed convolutional layers
-    x = Conv2DTranspose(64, 3, activation="relu", strides=2, padding="same")(x)
-    x = Conv2DTranspose(32, 3, activation="relu", strides=2, padding="same")(x)
+    x = Conv2DTranspose(filters[0], (3, 3), activation="relu", strides=2, padding="same")(x)
+    x = Conv2DTranspose(filters[1], (3, 3), activation="relu", strides=2, padding="same")(x)
 
     # Network output
-    decoder_outputs = Conv2DTranspose(1, 3, activation="sigmoid", padding="same")(x)
+    decoder_outputs = Conv2D(channels, (3, 3), activation="sigmoid", padding="same")(x)
 
     return Model(decoder_inputs, decoder_outputs, name="decoder")
 
@@ -143,19 +155,35 @@ def run():
     input_shape = (28, 28, 1)
     latent_dim = 2
     
+    # Get the encoder
     encoder = conv_encoder(input_shape, latent_dim)
     encoder.summary()
     
+    # Get the decoder
     decoder = conv_decoder(latent_dim)
     decoder.summary()
     
+    # Compile the Autoencoder
     vae = VAE(encoder, decoder)
     vae.compile(optimizer="adam")
 
-    (x_train, _), (x_test, _) = tf.keras.datasets.mnist.load_data()
+    # Load the data and fit the model
+    (x_train, y_train), (x_test, _) = tf.keras.datasets.mnist.load_data()
     mnist_digits = np.concatenate([x_train, x_test], axis=0)
     mnist_digits = np.expand_dims(mnist_digits, -1).astype("float32") / 255
     vae.fit(mnist_digits, epochs=10, batch_size=128)
+
+    # Get the latent representation and the bounds
+    latent_space = encoder.predict(mnist_digits)
+    import matplotlib.pyplot as plt
+    plt.figure(figsize=(14,12))
+    plt.scatter(latent_space[:,0], latent_space[:,1], s=2, c=y_train, cmap='hsv')
+    plt.colorbar()
+    plt.grid()
+    plt.show()
+
+    # Use the decoder to randomly generate a new image
+    # new_images = decoder.predict(new_points)
 
 if __name__ == "__main__":
     run()
