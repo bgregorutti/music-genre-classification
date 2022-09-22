@@ -31,6 +31,7 @@ def split_data(data, sr):
     if not nr_segments:
         nr_segments = 1
     
+    #TODO uniformiser avec le package
     sample_per_segment = int(data.size / nr_segments)
     for n in range(nr_segments):
         segment = data[sample_per_segment*n:sample_per_segment*(n+1)]
